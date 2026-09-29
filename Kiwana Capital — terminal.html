@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiwana Capital — terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0A100D;
+    --panel:#101915;
+    --panel-2:#0C1411;
+    --border:#213029;
+    --border-soft:#182420;
+    --text:#EAEDE6;
+    --text-dim:#8CA096;
+    --text-faint:#556158;
+    --jade:#4CB48A;
+    --jade-soft:#2E6B52;
+    --gold:#CDA556;
+    --red:#C1665F;
+    --blue:#5C8FCB;
+    --violet:#8C7CC9;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0; background:var(--bg);}
+  body{
+    font-family:'Space Grotesk','Liberation Sans',sans-serif;
+    color:var(--text);
+    width:1600px;
+    padding:40px 56px 64px;
+  }
+  .voice{font-family:'Lora',serif;}
+  a{color:inherit;}
+
+  /* ticker */
+  .ticker-wrap{
+    overflow:hidden; border:1px solid var(--border); border-radius:8px;
+    background:var(--panel-2); margin-bottom:28px; padding:9px 0;
+  }
+  .ticker{display:flex; gap:40px; white-space:nowrap; width:max-content; animation:scroll 34s linear infinite;}
+  @keyframes scroll{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+  .tick-item{font-size:13px; color:var(--text-dim); display:flex; gap:8px;}
+  .tick-item b{color:var(--text); font-weight:500;}
+
+  .header{display:flex; justify-content:space-between; align-items:flex-end; padding-bottom:24px; border-bottom:1px solid var(--border); margin-bottom:28px;}
+  .brand{display:flex; align-items:center; gap:16px;}
+  .mark{width:50px; height:50px; border-radius:13px; background:linear-gradient(155deg,var(--jade),var(--jade-soft)); display:flex; align-items:center; justify-content:center; font-family:'Lora',serif; font-size:24px; color:#07120E; font-weight:600;}
+  .brand-name{font-family:'Lora',serif; font-size:28px; font-weight:600;}
+  .brand-sub{font-size:12.5px; color:var(--text-dim); margin-top:4px; display:flex; align-items:center; gap:7px;}
+  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--jade); animation:pulse 1.8s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.35;}}
+  .header-right{text-align:right;}
+  .header-right .label{font-size:11.5px; color:var(--text-faint); letter-spacing:0.3px;}
+  .aum{font-family:'Lora',serif; font-size:36px; color:var(--gold);}
+  .clock{font-size:12.5px; color:var(--text-dim); margin-top:5px;}
+
+  .metrics{display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:28px;}
+  .metric{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px 18px; position:relative; overflow:hidden;}
+  .metric .label{font-size:11.5px; color:var(--text-dim); margin-bottom:7px;}
+  .metric .value{font-size:21px; font-weight:500;}
+  .metric svg{position:absolute; right:10px; bottom:10px; opacity:0.55;}
+  .pos{color:var(--jade);} .neg{color:var(--red);}
+
+  .row{display:grid; grid-template-columns:1.5fr 1fr; gap:20px; margin-bottom:20px;}
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:22px;}
+  .panel-title{font-size:12.5px; color:var(--text-dim); letter-spacing:0.3px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;}
+  .legend-dot{width:8px; height:8px; border-radius:2px; display:inline-block; margin-right:6px;}
+  .legend-row{display:flex; gap:16px; font-size:11.5px; color:var(--text-dim);}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{text-align:right; font-size:11px; font-weight:400; color:var(--text-faint); padding-bottom:9px; border-bottom:1px solid var(--border);}
+  th:first-child{text-align:left;}
+  td{padding:9px 0; border-bottom:1px solid var(--border-soft); text-align:right;}
+  td:first-child{text-align:left;}
+  tr:last-child td{border-bottom:none;}
+  .badge{font-size:10.5px; padding:2px 7px; border-radius:4px; border:1px solid var(--border); color:var(--text-dim);}
+
+  .filters{display:flex; gap:7px;}
+  .filt{font-size:11.5px; padding:5px 11px; border-radius:20px; border:1px solid var(--border); color:var(--text-dim); cursor:pointer; background:transparent; font-family:inherit;}
+  .filt.active{background:var(--jade-soft); border-color:var(--jade); color:#DFF5EB;}
+
+  .heatgrid{display:grid; grid-template-columns:repeat(6,1fr); gap:6px;}
+  .heat{border-radius:6px; padding:10px 10px 8px; font-size:11.5px; display:flex; flex-direction:column; justify-content:space-between; min-height:64px;}
+  .heat .sym{font-weight:500; font-size:13px;}
+  .heat .pct{font-size:12px; margin-top:6px;}
+
+  .gauges{display:flex; gap:20px;}
+  .gauge{flex:1; text-align:center;}
+  .gauge .gval{font-size:19px; font-weight:500; margin-top:-46px;}
+  .gauge .glabel{font-size:11.5px; color:var(--text-dim); margin-top:6px;}
+
+  .strat-row{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .strat-name{width:200px; font-size:13px;}
+  .strat-track{flex:1; background:var(--panel-2); border-radius:4px; height:8px;}
+  .strat-fill{height:100%; border-radius:4px;}
+  .strat-val{width:54px; text-align:right; font-size:13px; color:var(--jade);}
+
+  .alerts{display:flex; flex-direction:column; gap:10px;}
+  .alert{display:flex; gap:10px; font-size:12.5px; align-items:flex-start; padding:10px 12px; background:var(--panel-2); border-radius:8px; border-left:2px solid var(--border);}
+  .alert.warn{border-left-color:var(--gold);}
+  .alert.info{border-left-color:var(--blue);}
+  .alert .t{color:var(--text-faint); font-size:11px; margin-top:2px;}
+
+  .foot{margin-top:28px; font-size:11px; color:var(--text-faint); text-align:center; border-top:1px solid var(--border); padding-top:18px;}
+</style>
+</head>
+<body>
+
+  <div class="ticker-wrap">
+    <div class="ticker" id="ticker"></div>
+  </div>
+
+  <div class="header">
+    <div class="brand">
+      <div class="mark">K</div>
+      <div>
+        <div class="brand-name">Kiwana Capital</div>
+        <div class="brand-sub"><span class="live-dot"></span>Markets open · multi-strategy fund</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="label">Assets under management</div>
+      <div class="aum">$482.6M</div>
+      <div class="clock" id="clock"></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="label">1D P&amp;L</div><div class="value pos">+$3.82M</div>
+      <svg width="70" height="28" viewBox="0 0 70 28"><polyline points="0,22 12,18 24,20 36,12 48,14 60,6 70,4" fill="none" stroke="#4CB48A" stroke-width="2"/></svg>
+    </div>
+    <div class="metric"><div class="label">MTD return</div><div class="value pos">+6.4%</div>
+      <svg width="70" height="28" viewBox="0 0 70 28"><polyline points="0,20 12,19 24,15 36,17 48,10 60,8 70,3" fill="none" stroke="#4CB48A" stroke-width="2"/></svg>
+    </div>
+    <div class="metric"><div class="label">YTD return</div><div class="value pos">+38.2%</div>
+      <svg width="70" height="28" viewBox="0 0 70 28"><polyline points="0,24 12,20 24,21 36,14 48,15 60,7 70,2" fill="none" stroke="#4CB48A" stroke-width="2"/></svg>
+    </div>
+    <div class="metric"><div class="label">Sharpe (1Y)</div><div class="value">2.1</div></div>
+    <div class="metric"><div class="label">Volatility</div><div class="value">24.0%</div></div>
+    <div class="metric"><div class="label">Max drawdown</div><div class="value neg">-11.4%</div></div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="panel-title">
+        <span>Cumulative return · trailing 12 months</span>
+        <span class="legend-row">
+          <span><span class="legend-dot" style="background:#4CB48A;"></span>Kiwana Capital</span>
+          <span><span class="legend-dot" style="background:#CDA556;"></span>BTC</span>
+          <span><span class="legend-dot" style="background:#556158;"></span>S&amp;P 500</span>
+        </span>
+      </div>
+      <canvas id="perfChart" height="240"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span>Asset allocation</span></div>
+      <div style="display:flex; gap:18px; align-items:center;">
+        <canvas id="allocChart" width="150" height="150" style="flex:0 0 150px;"></canvas>
+        <div style="flex:1; font-size:13px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:9px;"><span><span class="legend-dot" style="background:#4CB48A;"></span>Crypto</span><span class="text-dim" style="color:var(--text-dim);">42%</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:9px;"><span><span class="legend-dot" style="background:#5C8FCB;"></span>Equities</span><span style="color:var(--text-dim);">24%</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:9px;"><span><span class="legend-dot" style="background:#8C7CC9;"></span>Fixed income</span><span style="color:var(--text-dim);">14%</span></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:9px;"><span><span class="legend-dot" style="background:#CDA556;"></span>Commodities</span><span style="color:var(--text-dim);">11%</span></div>
+          <div style="display:flex; justify-content:space-between;"><span><span class="legend-dot" style="background:#556158;"></span>FX &amp; cash</span><span style="color:var(--text-dim);">9%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="panel-title">
+        <span>Positions</span>
+        <div class="filters" id="filters">
+          <button class="filt active" data-f="all">All</button>
+          <button class="filt" data-f="Crypto">Crypto</button>
+          <button class="filt" data-f="Equity">Equities</button>
+          <button class="filt" data-f="Fixed income">Fixed income</button>
+          <button class="filt" data-f="Commodity">Commodities</button>
+          <button class="filt" data-f="FX">FX</button>
+        </div>
+      </div>
+      <table>
+        <tr><th>Position</th><th>Class</th><th>Weight</th><th>1D</th><th>7D trend</th></tr>
+        <tbody id="holdingsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Risk</div>
+      <div class="gauges">
+        <div class="gauge">
+          <svg width="120" height="72" viewBox="0 0 120 72">
+            <path d="M10,66 A50,50 0 0,1 110,66" fill="none" stroke="#182420" stroke-width="10" stroke-linecap="round"/>
+            <path d="M10,66 A50,50 0 0,1 110,66" fill="none" stroke="#4CB48A" stroke-width="10" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="82"/>
+          </svg>
+          <div class="gval">1.8x</div>
+          <div class="glabel">Gross leverage</div>
+        </div>
+        <div class="gauge">
+          <svg width="120" height="72" viewBox="0 0 120 72">
+            <path d="M10,66 A50,50 0 0,1 110,66" fill="none" stroke="#182420" stroke-width="10" stroke-linecap="round"/>
+            <path d="M10,66 A50,50 0 0,1 110,66" fill="none" stroke="#CDA556" stroke-width="10" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="102"/>
+          </svg>
+          <div class="gval">1.9%</div>
+          <div class="glabel">1D VaR / AUM</div>
+        </div>
+      </div>
+      <div style="margin-top:8px; font-size:13px;">
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);"><span style="color:var(--text-dim);">Beta to BTC</span><span>0.61</span></div>
+        <div style="display:flex; justify-content:space-between; padding:8px 0;"><span style="color:var(--text-dim);">Net exposure</span><span>0.64</span></div>
+      </div>
+
+      <div class="panel-title" style="margin-top:18px;">Alerts</div>
+      <div class="alerts">
+        <div class="alert warn"><div>SOL position approaching 5% concentration limit<div class="t">14 min ago</div></div></div>
+        <div class="alert info"><div>Rebalance to crypto target band completed<div class="t">2h ago</div></div></div>
+        <div class="alert"><div>EUR/USD carry trade stop-loss adjusted to -1.2%<div class="t">5h ago</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <div class="panel-title">Strategy breakdown · contribution to YTD return</div>
+      <div class="strat-row"><div class="strat-name">Digital asset momentum</div><div class="strat-track"><div class="strat-fill" style="width:48.7%; background:#4CB48A;"></div></div><div class="strat-val">+18.6%</div></div>
+      <div class="strat-row"><div class="strat-name">Global macro &amp; FX</div><div class="strat-track"><div class="strat-fill" style="width:18.8%; background:#5C8FCB;"></div></div><div class="strat-val">+7.2%</div></div>
+      <div class="strat-row"><div class="strat-name">Equity long/short</div><div class="strat-track"><div class="strat-fill" style="width:16.0%; background:#8C7CC9;"></div></div><div class="strat-val">+6.1%</div></div>
+      <div class="strat-row"><div class="strat-name">Commodities carry</div><div class="strat-track"><div class="strat-fill" style="width:10.2%; background:#CDA556;"></div></div><div class="strat-val">+3.9%</div></div>
+      <div class="strat-row" style="margin-bottom:0;"><div class="strat-name">Fixed income relative value</div><div class="strat-track"><div class="strat-fill" style="width:6.3%; background:#556158;"></div></div><div class="strat-val">+2.4%</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Recent trades</div>
+      <table>
+        <tr><th>Time</th><th>Side</th><th>Symbol</th><th>Notional</th></tr>
+        <tr><td style="text-align:left;">14:22</td><td><span class="badge" style="color:var(--jade); border-color:var(--jade-soft);">Buy</span></td><td>SOL</td><td>$1.4M</td></tr>
+        <tr><td style="text-align:left;">13:57</td><td><span class="badge" style="color:var(--red); border-color:#5a2e2b;">Sell</span></td><td>EUR/USD</td><td>$0.8M</td></tr>
+        <tr><td style="text-align:left;">12:41</td><td><span class="badge" style="color:var(--jade); border-color:var(--jade-soft);">Buy</span></td><td>ETH</td><td>$2.1M</td></tr>
+        <tr><td style="text-align:left;">11:03</td><td><span class="badge" style="color:var(--red); border-color:#5a2e2b;">Sell</span></td><td>Gold futures</td><td>$0.6M</td></tr>
+        <tr><td style="text-align:left;">09:48</td><td><span class="badge" style="color:var(--jade); border-color:var(--jade-soft);">Buy</span></td><td>NVDA</td><td>$1.0M</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Holdings heatmap · sized by weight, colored by 1D move</div>
+    <div class="heatgrid" id="heatgrid"></div>
+  </div>
+
+  <div class="foot">Illustrative data for demonstration purposes only · not investment advice · Kiwana Capital is a fictional entity</div>
+
+<script>
+const holdings = [
+  {sym:'BTC', cls:'Crypto', w:14.2, d1:2.3, trend:[0,3,2,6,5,9,10]},
+  {sym:'ETH', cls:'Crypto', w:9.8, d1:4.1, trend:[0,1,4,3,7,6,9]},
+  {sym:'SOL', cls:'Crypto', w:4.6, d1:7.8, trend:[0,2,1,5,4,8,11]},
+  {sym:'NVDA', cls:'Equity', w:5.2, d1:1.1, trend:[0,2,1,3,2,4,3]},
+  {sym:'Gold futures', cls:'Commodity', w:4.4, d1:-0.3, trend:[0,1,0,-1,0,-1,-1]},
+  {sym:'US 10Y Treasury', cls:'Fixed income', w:3.9, d1:0.2, trend:[0,0,1,0,1,1,1]},
+  {sym:'EUR/USD carry', cls:'FX', w:3.1, d1:-0.6, trend:[0,-1,-2,-1,-2,-2,-2]},
+  {sym:'AAPL', cls:'Equity', w:2.8, d1:0.4, trend:[0,1,0,2,1,2,2]},
+];
+
+function sparkline(t){
+  const min=Math.min(...t), max=Math.max(...t), h=22, w=60;
+  const pts=t.map((v,i)=>`${(i/(t.length-1))*w},${h-((v-min)/((max-min)||1))*h}`).join(' ');
+  const up = t[t.length-1] >= t[0];
+  return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${up?'#4CB48A':'#C1665F'}" stroke-width="1.8"/></svg>`;
+}
+
+const tbody = document.getElementById('holdingsBody');
+function renderHoldings(filter){
+  tbody.innerHTML = holdings
+    .filter(h => filter==='all' || h.cls===filter)
+    .map(h => `<tr>
+      <td>${h.sym}</td>
+      <td style="color:var(--text-dim);">${h.cls}</td>
+      <td>${h.w.toFixed(1)}%</td>
+      <td class="${h.d1>=0?'pos':'neg'}">${h.d1>=0?'+':''}${h.d1.toFixed(1)}%</td>
+      <td>${sparkline(h.trend)}</td>
+    </tr>`).join('');
+}
+renderHoldings('all');
+
+document.getElementById('filters').addEventListener('click', e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('.filt').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  renderHoldings(e.target.dataset.f);
+});
+
+const heat = document.getElementById('heatgrid');
+heat.innerHTML = holdings.slice().sort((a,b)=>b.w-a.w).map(h=>{
+  const c = h.d1>=4 ? '#1D9E75' : h.d1>=0 ? '#2E6B52' : h.d1>=-1 ? '#5a2e2b' : '#7a3a35';
+  return `<div class="heat" style="background:${c};"><span class="sym">${h.sym}</span><span class="pct">${h.d1>=0?'+':''}${h.d1.toFixed(1)}% · ${h.w.toFixed(1)}%</span></div>`;
+}).join('');
+
+const tickerData = [...holdings, {sym:'XAU',d1:-0.3},{sym:'DXY',d1:0.2},{sym:'S&P 500',d1:0.5},{sym:'10Y yield',d1:-0.1}];
+const tickHtml = tickerData.map(t=>`<span class="tick-item">${t.sym} <b class="${t.d1>=0?'pos':'neg'}">${t.d1>=0?'+':''}${t.d1.toFixed(1)}%</b></span>`).join('');
+document.getElementById('ticker').innerHTML = tickHtml + tickHtml;
+
+function tickClock(){
+  document.getElementById('clock').textContent = new Date().toUTCString().replace('GMT','UTC');
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+const months=['Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'];
+new Chart(document.getElementById('perfChart'), {
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[
+      {label:'Kiwana Capital', data:[0,3,5,9,8,14,18,16,24,28,33,36,38.2], borderColor:'#4CB48A', backgroundColor:'rgba(76,180,138,0.12)', fill:true, tension:0.35, pointRadius:0, borderWidth:2.5},
+      {label:'BTC', data:[0,5,4,12,7,20,15,10,25,22,34,30,41], borderColor:'#CDA556', fill:false, tension:0.35, pointRadius:0, borderWidth:1.5},
+      {label:'S&P 500', data:[0,1,2,3,2,5,6,5,8,9,11,12,14], borderColor:'#556158', fill:false, tension:0.35, pointRadius:0, borderWidth:1.5},
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{display:false}, tooltip:{mode:'index', intersect:false, backgroundColor:'#101915', borderColor:'#213029', borderWidth:1, titleColor:'#EAEDE6', bodyColor:'#8CA096'}},
+    scales:{
+      x:{grid:{color:'#182420'}, ticks:{color:'#556158', font:{size:11}}},
+      y:{grid:{color:'#182420'}, ticks:{color:'#556158', font:{size:11}, callback:v=>v+'%'}}
+    },
+    interaction:{mode:'index', intersect:false}
+  }
+});
+
+new Chart(document.getElementById('allocChart'), {
+  type:'doughnut',
+  data:{
+    labels:['Crypto','Equities','Fixed income','Commodities','FX & cash'],
+    datasets:[{data:[42,24,14,11,9], backgroundColor:['#4CB48A','#5C8FCB','#8C7CC9','#CDA556','#556158'], borderColor:'#101915', borderWidth:3}]
+  },
+  options:{
+    responsive:false,
+    cutout:'68%',
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:'#0C1411', borderColor:'#213029', borderWidth:1}}
+  }
+});
+</script>
+
+</body>
+</html>
